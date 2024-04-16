@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVG Rendering with JavaScript</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        svg {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+
+<svg id="mySVG" width="800" height="600">
+    <polygon id="myPolygon" fill="#0000" stroke="black" stroke-width="4" />
+</svg>
+
+<script>
+    // Define the vertices of the cube
+    const vertices = [
+        [-1, -1, -1], // 0
+        [1, -1, -1],  // 1
+        [1, 1, -1],   // 2
+        [-1, 1, -1],  // 3
+        [-1, -1, 1],  // 4
+        [1, -1, 1],   // 5
+        [1, 1, 1],    // 6
+        [-1, 1, 1]    // 7
+    ];
+
+    // Define the indices that make up each face of the cube
+    const indices = [
+        [0, 1, 2, 3], // front
+        [1, 5, 6, 2], // right
+        [5, 4, 7, 6], // back
+        [4, 0, 3, 7], // left
+        [3, 2, 6, 7], // top
+        [4, 5, 1, 0]  // bottom
+    ];
+
+    // Function to generate 3D points for the cube
+    function generateCube() {
+        const points = [];
+
+        // Loop through each face of the cube
+        for (const faceIndices of indices) {
+            // Loop through each vertex index of the face
+            for (const index of faceIndices) {
+                // Add the vertex to the points array
+                points.push(vertices[index]);
+            }
+        }
+
+        return points;
+    }
+
+    function multiplyMatrices(matrix1, matrix2) {
+        const result = [];
+
+        // Check if matrices can be multiplied
+        if (matrix1[0].length !== matrix2.length) {
+            console.error("Cannot multiply matrices: incompatible dimensions");
+            return result;
+        }
+
+        // Iterate over rows of matrix1
+        for (let i = 0; i < matrix1.length; i++) {
+            result[i] = [];
+            // Iterate over columns of matrix2
+            for (let j = 0; j < matrix2[0].length; j++) {
+                let sum = 0;
+                // Iterate over corresponding elements of row of matrix1 and column of matrix2
+                for (let k = 0; k < matrix1[0].length; k++) {
+                    sum += matrix1[i][k] * matrix2[k][j];
+                }
+                result[i][j] = sum;
+            }
+        }
+
+        return result;
+    }
+
+
+    const modelMatrix = [
+        [1, 0, 0, 0],
+        [0, 1, 0, 0],
+        [0, 0, 1, 2],
+        [0, 0, 0, 1]
+    ];
+    let angleX = 0;
+    let angleY = 0;
+
+    function transformPoint(point) {
+        const x = point[0];
+        const y = point[1];
+        const z = point[2];
+
+        // Create rotation matrices for X and Y axes
+        const rotationX = [
+            [1, 0, 0, 0],
+            [0, Math.cos(angleX), -Math.sin(angleX), 0],
+            [0, Math.sin(angleX), Math.cos(angleX), 0],
+            [0, 0, 0, 1]
+        ];
+
+        const rotationY = [
+            [Math.cos(angleY), 0, Math.sin(angleY), 0],
+            [0, 1, 0, 0],
+            [-Math.sin(angleY), 0, Math.cos(angleY), 0],
+            [0, 0, 0, 1]
+        ];
+
+        // Multiply the rotation matrices to get the combined rotation
+        const rotationMatrix = multiplyMatrices(rotationY, rotationX); // Assuming you have a function to multiply matrices
+
+        // Apply the rotation matrix to the modelMatrix
+        const matrix = multiplyMatrices(modelMatrix, rotationMatrix); // Assuming modelMatrix is a global variable
+
+
+        // Apply the transformation matrix to the point
+        const xNew = matrix[0][0] * x + matrix[0][1] * y + matrix[0][2] * z + matrix[0][3];
+        const yNew = matrix[1][0] * x + matrix[1][1] * y + matrix[1][2] * z + matrix[1][3];
+        const zNew = matrix[2][0] * x + matrix[2][1] * y + matrix[2][2] * z + matrix[2][3];
+
+        return [xNew, yNew, zNew];
+    }
+
+    function transformPoint2(point) {
+        const x = point[0];
+        const y = point[1];
+        const z = point[2];
+
+        // Apply the rotation matrix to the modelMatrix
+        const positionMatrix = [
+            [1, 0, 0, 0],
+            [0, 1, 0, 0],
+            [0, 0, 1, 5],
+            [0, 0, 0, 1]];
+
+        // Create rotation matrices for X and Y axes
+        const rotationX = [
+            [1, 0, 0, 0],
+            [0, Math.cos(-angleX), -Math.sin(-angleX), 0],
+            [0, Math.sin(-angleX), Math.cos(-angleX), 0],
+            [0, 0, 0, 1]
+        ];
+
+        const rotationY = [
+            [Math.cos(angleY), 0, Math.sin(angleY), 0],
+            [0, 1, 0, 0],
+            [-Math.sin(angleY), 0, Math.cos(angleY), 0],
+            [0, 0, 0, 1]
+        ];
+
+        // Multiply the rotation matrices to get the combined rotation
+        const rotationMatrix = multiplyMatrices(rotationY, rotationX); // Assuming you have a function to multiply matrices
+
+        // Apply the rotation matrix to the modelMatrix
+        const matrix = multiplyMatrices(positionMatrix, rotationMatrix); // Assuming modelMatrix is a global variable
+
+
+        // Apply the transformation matrix to the point
+        const xNew = matrix[0][0] * x + matrix[0][1] * y + matrix[0][2] * z + matrix[0][3];
+        const yNew = matrix[1][0] * x + matrix[1][1] * y + matrix[1][2] * z + matrix[1][3];
+        const zNew = matrix[2][0] * x + matrix[2][1] * y + matrix[2][2] * z + matrix[2][3];
+
+        return [xNew, yNew, zNew];
+    }
+
+    function projectPoint(point) {
+        const x = point[0];
+        const y = point[1];
+        const z = point[2];
+        const screenWidth = window.innerWidth;
+        const screenHeight = window.innerHeight;
+
+        const fovAngle = 90;
+        const a = screenHeight / screenWidth;
+        const f = 1 / Math.tan(fovAngle / 2 * Math.PI / 180);
+
+        const zFar = 1000;
+        const zNear = 0.1;
+        const lambda = zFar / (zFar - zNear);
+
+        let newX = a * f * x;
+        let newY = f * y;
+        let newZ = z * lambda - zNear * lambda;
+
+        //Perspective division
+        if(newZ !== 0) {
+            newX = newX / newZ;
+            newY = newY / newZ;
+        }
+
+        return [newX, newY];
+    }
+
+    function drawCube() {
+        polygon.setAttribute("points", pointsString);
+    }
+
+    // Function to update rotation angles based on mouse movement
+    function updateRotation(event) {
+        // Adjust rotation angles based on mouse movement
+        angleX += event.movementY * 0.01; // Adjust sensitivity as needed
+        angleY += event.movementX * 0.01;
+    }
+
+    // Attach mousemove event listener to the document
+    document.addEventListener('mousemove', updateRotation);
+
+    // JavaScript code to manipulate the SVG
+    window.onload = function() {
+        const polygon = document.getElementById("myPolygon");
+
+        function animate() {
+            const cubePoints = generateCube();
+            const transformedPoints = cubePoints.map(transformPoint);
+            const projectedPoints = transformedPoints.map(projectPoint);
+            const cube2 = generateCube().map(transformPoint2).map(projectPoint);
+            const allPoints = projectedPoints.concat(cube2);
+
+            const screenWidth = window.innerWidth;
+            const screenHeight = window.innerHeight;
+            const pointsScaledScreen = allPoints.map(function(point) {
+                return [screenWidth / 2 + point[0] * screenWidth / 2, screenHeight / 2 + point[1] * screenHeight / 2];
+            });
+            const pointsString = pointsScaledScreen.map(function(point) {
+                return point[0] + ',' + point[1];
+            }).join(' ');
+
+            polygon.setAttribute("points", pointsString);
+            requestAnimationFrame(animate);
+        }
+        requestAnimationFrame(animate);
+    };
+</script>
+
+</body>
+</html>
